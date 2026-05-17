@@ -4,10 +4,8 @@ import { ShiftChart } from '@/components/dashboard/ShiftChart';
 import { MachineChart } from '@/components/dashboard/MachineChart';
 import { confidenceToPercent, formatDate } from '@/lib/utils';
 import { BarChart3, TrendingUp, AlertTriangle, CheckCircle2 } from 'lucide-react';
-import {
-  ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
-  CartesianGrid, Tooltip, Cell, PieChart, Pie, Legend,
-} from 'recharts';
+import { StatusDistributionChart } from '@/components/dashboard/StatusDistributionChart';
+import { ValidationIssueChart } from '@/components/dashboard/ValidationIssueChart';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,13 +25,6 @@ export default async function AnalyticsPage() {
     { name: 'Overridden', value: validationSummary.overridden, color: 'hsl(280 80% 60%)' },
   ];
 
-  const tooltipStyle = {
-    background: 'hsl(222 47% 9%)',
-    border: '1px solid hsl(222 30% 16%)',
-    borderRadius: 8,
-    fontSize: 12,
-    color: 'hsl(213 31% 91%)',
-  };
 
   return (
     <div>
@@ -80,21 +71,7 @@ export default async function AnalyticsPage() {
           {/* Document status pie */}
           <div className="rounded-xl border border-border bg-card p-5">
             <p className="text-sm font-semibold text-foreground mb-5">Document Status Distribution</p>
-            {statusData.length === 0 ? (
-              <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">No data yet</div>
-            ) : (
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie data={statusData} cx="50%" cy="50%" outerRadius={75} dataKey="value" paddingAngle={3}>
-                    {statusData.map((entry, i) => (
-                      <Cell key={i} fill={entry.color} opacity={0.85} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={tooltipStyle} formatter={(v: number, _n, p) => [v, p.payload.name]} />
-                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, color: 'hsl(215 16% 55%)' }} />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
+            <StatusDistributionChart data={statusData} />
           </div>
         </div>
 
@@ -109,19 +86,7 @@ export default async function AnalyticsPage() {
         {/* Validation issues bar */}
         <div className="rounded-xl border border-border bg-card p-5">
           <p className="text-sm font-semibold text-foreground mb-5">Validation Issue Breakdown</p>
-          <ResponsiveContainer width="100%" height={120}>
-            <BarChart data={validationData} layout="vertical" margin={{ left: 0, right: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(222 30% 16%)" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 11, fill: 'hsl(215 16% 55%)' }} axisLine={false} tickLine={false} />
-              <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: 'hsl(215 16% 55%)' }} axisLine={false} tickLine={false} width={75} />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                {validationData.map((entry, i) => (
-                  <Cell key={i} fill={entry.color} opacity={0.8} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          <ValidationIssueChart data={validationData} />
         </div>
 
         {/* Machine table */}

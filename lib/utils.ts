@@ -27,7 +27,7 @@ export function formatDateTime(date: Date | string | null): string {
   return new Intl.DateTimeFormat('en-IN', {
     dateStyle: 'short',
     timeStyle: 'short',
-  }).format(new Date(date));
+  }).format(new Date(date)).toUpperCase();
 }
 
 export function formatDuration(ms: number): string {
