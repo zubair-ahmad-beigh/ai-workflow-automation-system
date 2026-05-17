@@ -1,0 +1,140 @@
+// This is your Prisma schema file for the Manufacturing Workflow System
+// Using SQLite for local dev, easily swap to PostgreSQL for production
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────
+// DOCUMENT — represents an uploaded manufacturing document
+// ─────────────────────────────────────────────────────────────
+model Document {
+  id              String   @id @default(cuid())
+  filename        String
+  originalName    String
+  filePath        String
+  fileSize        Int
+  mimeType        String
+
+  status          String   @default("uploaded")
+  // uploaded | processing | extracted | needs_review | approved | rejected
+
+  uploadedAt      DateTime @default(now())
+  processedAt     DateTime?
+  reviewedAt      DateTime?
+  approvedAt      DateTime?
+
+  rawOcrText      String?
+  ocrConfidence   Float?
+  pageCount       Int      @default(1)
+
+  extractedRecord ExtractedRecord?
+  validationIssues ValidationIssue[]
+  auditLogs       AuditLog[]
+
+  @@index([status])
+  @@index([uploadedAt])
+}
+
+// ─────────────────────────────────────────────────────────────
+// EXTRACTED RECORD — structured data from OCR + LLM
+// ─────────────────────────────────────────────────────────────
+model ExtractedRecord {
+  id          String   @id @default(cuid())
+  documentId  String   @unique
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  // ── Manufacturing fields ──────────────────────────
+  date              String?
+  shift             String?
+  employeeNumber    String?
+  operationCode     String?
+  machineNumber     String?
+  workOrderNumber   String?
+  quantityProduced  Float?
+  timeTaken         Float?
+  // Extension fields
+  batchNumber       String?
+  productCode       String?
+  supervisorId      String?
+  qualityGrade      String?
+  remarks           String?
+
+  // ── Confidence scores (JSON blob) ────────────────
+  // { "date": { "value": "2024-01-15", "confidence": 0.92, "source": "llm" }, ... }
+  confidenceScores  String   @default("{}")
+
+  // ── Extraction metadata ───────────────────────────
+  extractionModel   String?
+  extractionPromptVersion String @default("v1")
+  extractionDurationMs    Int?
+  retryCount        Int      @default(0)
+  rawLlmResponse    String?
+  overallConfidence Float?
+
+  // ── Review tracking ───────────────────────────────
+  isManuallyReviewed Boolean  @default(false)
+  reviewedBy         String?
+  reviewNotes        String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([workOrderNumber])
+  @@index([machineNumber])
+  @@index([shift])
+  @@index([date])
+}
+
+// ─────────────────────────────────────────────────────────────
+// VALIDATION ISSUE — a single validation rule failure
+// ─────────────────────────────────────────────────────────────
+model ValidationIssue {
+  id          String   @id @default(cuid())
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  field       String
+  rule        String
+  message     String
+  severity    String   @default("warning")
+  // error | warning | info
+
+  isOverridden   Boolean  @default(false)
+  overrideNote   String?
+  overriddenBy   String?
+  overriddenAt   DateTime?
+
+  createdAt   DateTime @default(now())
+
+  @@index([documentId])
+  @@index([severity])
+}
+
+// ─────────────────────────────────────────────────────────────
+// AUDIT LOG — immutable event trail
+// ─────────────────────────────────────────────────────────────
+model AuditLog {
+  id          String   @id @default(cuid())
+  documentId  String
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  action      String
+  // uploaded | ocr_started | ocr_completed | extraction_started | extraction_completed
+  // review_saved | approved | rejected | validation_overridden | reprocessed
+
+  actor       String   @default("system")
+  details     String?  // JSON blob of any extra detail
+  ipAddress   String?
+
+  createdAt   DateTime @default(now())
+
+  @@index([documentId])
+  @@index([action])
+  @@index([createdAt])
+}
