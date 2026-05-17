@@ -38,9 +38,6 @@ npm run db:seed
 # 3. Run server
 npm run dev
 ```
-
-Open [http://localhost:3000](http://localhost:3000)
-
 ## Environment Variables
 
 - `DATABASE_URL` — Prisma connection string (e.g., `file:./dev.db`)
